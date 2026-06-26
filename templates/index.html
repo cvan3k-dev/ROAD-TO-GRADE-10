@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road To Grade 10 RPG</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0f0f1a; color: #e0e0e0; min-height: 100vh; }
+        
+        .header {
+            background: #1a1a2e;
+            border-bottom: 4px solid #4a6fa5;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .header .brand { color: #f7d44a; font-size: 24px; font-weight: bold; }
+        .header .stats { display: flex; gap: 20px; flex-wrap: wrap; }
+        .header .stats span { color: #aaa; font-size: 14px; }
+        .header .stats span strong { color: white; }
+        .header .nav a {
+            color: #aaa;
+            text-decoration: none;
+            margin-left: 15px;
+            transition: color 0.2s;
+        }
+        .header .nav a:hover { color: #f7d44a; }
+        
+        .main { padding: 30px; max-width: 1200px; margin: 0 auto; }
+        .pixel-border {
+            border: 4px solid #4a6fa5;
+            padding: 20px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+        .level-item {
+            border: 2px solid #2a3f5a;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+            background: #0f0f1a;
+            border-radius: 8px;
+        }
+        .level-item.unlocked { border-color: #4caf50; background: #1a3a1a; }
+        .level-item.locked { opacity: 0.4; cursor: not-allowed; }
+        .level-item .icon { font-size: 32px; }
+        .level-item .name { font-size: 10px; margin-top: 5px; }
+        
+        .ach-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+        .ach-item {
+            text-align: center;
+            padding: 10px;
+            border: 2px solid #2a3f5a;
+            border-radius: 8px;
+        }
+        .ach-item.unlocked { border-color: #f7d44a; background: #1a1a2e; }
+        .ach-item.locked { opacity: 0.3; }
+        .ach-item .icon { font-size: 24px; }
+        .ach-item .name { font-size: 9px; }
+        
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .leaderboard-table th {
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 2px solid #4a6fa5;
+            color: #f7d44a;
+        }
+        .leaderboard-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #2a3f5a;
+        }
+        .rank-1 { color: #f7d44a; font-weight: bold; }
+        .rank-2 { color: #c0c0c0; font-weight: bold; }
+        .rank-3 { color: #cd7f32; font-weight: bold; }
+        
+        .btn {
+            background: #4a6fa5;
+            color: white;
+            border: 3px solid #2a3f5a;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.1s;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+        }
+        .btn:hover { transform: translate(2px, 2px); }
+        .btn-gold { background: #f7d44a; color: #1a1a2e; border-color: #b8960a; }
+        .btn-danger { background: #e74c3c; border-color: #a93226; }
+        
+        .xp-bar {
+            background: #2a2a3a;
+            height: 6px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .xp-bar-fill {
+            background: #f7d44a;
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .level-grid { grid-template-columns: repeat(2, 1fr); }
+            .header { flex-direction: column; gap: 10px; text-align: center; }
+        }
+        @media (max-width: 480px) {
+            .level-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="brand">🎮 Road To Grade 10 RPG</div>
+        <div class="stats">
+            <span>Level <strong>{{ user.level }}</strong></span>
+            <span>XP <strong>{{ user.xp }}</strong></span>
+            <span>🪙 <strong>{{ user.coins }}</strong></span>
+            <span>🏅 <strong>{{ user.rank }}</strong></span>
+            <span>🎯 <strong>{{ user.accuracy }}%</strong></span>
+        </div>
+        <div class="nav">
+            <a href="/home">🏠 Trang chủ</a>
+            <a href="/profile">👤 Profile</a>
+            <a href="/roadmap">🗺️ Roadmap</a>
+            <a href="/achievement">🏆 Thành tích</a>
+            <a href="/leaderboard">📊 Bảng xếp hạng</a>
+            {% if user.is_admin %}
+                <a href="/admin" style="color: #e74c3c;">🔐 Admin</a>
+            {% endif %}
+            <a href="/logout">🚪 Thoát</a>
+        </div>
+    </div>
+    
+    <div class="main">
+        <h1 style="color: #f7d44a; text-align: center; margin-bottom: 20px;">⚔️ Chào mừng, {{ user.username }}!</h1>
+        
+        <!-- XP Bar -->
+        <div class="pixel-border">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <span>XP: {{ user.xp }} / {{ user.level * 200 }}</span>
+                <span>{{ (user.xp / (user.level * 200) * 100) | round(1) }}%</span>
+            </div>
+            <div class="xp-bar">
+                <div class="xp-bar-fill" style="width: {{ (user.xp / (user.level * 200) * 100) if user.level * 200 > 0 else 0 }}%;"></div>
+            </div>
+        </div>
+        
+        <div class="grid-2">
+            <!-- Roadmap nhanh -->
+            <div class="pixel-border">
+                <h3 style="color: #f7d44a;">🗺️ Roadmap</h3>
+                <div class="level-grid">
+                    {% for i in range(1, 11) %}
+                        <div class="level-item {% if i <= user.level %}unlocked{% else %}locked{% endif %}" onclick="{% if i <= user.level %}location.href='/game/{{ i }}'{% endif %}">
+                            <div class="icon">{% if i <= 3 %}🌲{% elif i <= 6 %}🏰{% else %}🏯{% endif %}</div>
+                            <div class="name">Level {{ i }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <a href="/roadmap" class="btn" style="margin-top: 10px;">🗺️ Xem chi tiết</a>
+            </div>
+            
+            <!-- Bảng xếp hạng nhanh -->
+            <div class="pixel-border">
+                <h3 style="color: #f7d44a;">📊 Top 5</h3>
+                <table class="leaderboard-table">
+                    <thead><tr><th>#</th><th>Tên</th><th>Level</th><th>XP</th></tr></thead>
+                    <tbody>
+                        {% for u in leaderboard %}
+                            <tr>
+                                <td class="{% if loop.index == 1 %}rank-1{% elif loop.index == 2 %}rank-2{% elif loop.index == 3 %}rank-3{% endif %}">
+                                    {{ loop.index }}
+                                </td>
+                                <td>{% if loop.index == 1 %}👑 {% endif %}{{ u.username }}</td>
+                                <td>{{ u.level }}</td>
+                                <td>{{ u.xp }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <a href="/leaderboard" class="btn" style="margin-top: 10px;">📊 Xem toàn bộ</a>
+            </div>
+        </div>
+        
+        <!-- Thành tích gần đây -->
+        <div class="pixel-border">
+            <h3 style="color: #f7d44a;">🏆 Thành tích</h3>
+            <div class="ach-grid">
+                {% for ach in all_ach %}
+                    {% set ach_id = 'ach_' ~ ach.id %}
+                    <div class="ach-item {% if ach_id in unlocked %}unlocked{% else %}locked{% endif %}">
+                        <div class="icon">{{ ach.icon }}</div>
+                        <div class="name">{{ ach.name }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+            <a href="/achievement" class="btn" style="margin-top: 10px;">🏆 Xem tất cả</a>
+        </div>
+        
+        <!-- Nút hành động -->
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+            {% if user.level < 10 %}
+                <a href="/game/{{ user.level + 1 }}" class="btn btn-gold">⚔️ Chiến đấu Level {{ user.level + 1 }}</a>
+            {% else %}
+                <a href="/game/10" class="btn btn-gold">⚔️ Đánh Boss cuối</a>
+            {% endif %}
+            {% if user.is_admin %}
+                <a href="/admin" class="btn" style="background: #e74c3c; border-color: #a93226;">🔐 Vào Admin</a>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

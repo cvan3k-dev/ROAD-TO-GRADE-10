@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng xếp hạng - Road To Grade 10 RPG</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0f0f1a; color: #e0e0e0; min-height: 100vh; }
+        .header {
+            background: #1a1a2e;
+            border-bottom: 4px solid #4a6fa5;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .header .brand { color: #f7d44a; font-size: 24px; font-weight: bold; }
+        .header .nav a {
+            color: #aaa;
+            text-decoration: none;
+            margin-left: 15px;
+            transition: color 0.2s;
+        }
+        .header .nav a:hover { color: #f7d44a; }
+        .main { padding: 30px; max-width: 800px; margin: 0 auto; }
+        .pixel-border {
+            border: 4px solid #4a6fa5;
+            padding: 30px;
+            background: #1a1a2e;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th {
+            text-align: left;
+            padding: 12px 15px;
+            border-bottom: 2px solid #4a6fa5;
+            color: #f7d44a;
+        }
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #2a3f5a;
+        }
+        .rank-1 { color: #f7d44a; font-weight: bold; }
+        .rank-2 { color: #c0c0c0; font-weight: bold; }
+        .rank-3 { color: #cd7f32; font-weight: bold; }
+        .btn {
+            background: #4a6fa5;
+            color: white;
+            border: 3px solid #2a3f5a;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.1s;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover { transform: translate(2px, 2px); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="brand">🎮 Road To Grade 10 RPG</div>
+        <div class="nav">
+            <a href="/home">🏠 Trang chủ</a>
+            <a href="/profile">👤 Profile</a>
+            <a href="/roadmap">🗺️ Roadmap</a>
+            <a href="/achievement">🏆 Thành tích</a>
+            <a href="/leaderboard">📊 Bảng xếp hạng</a>
+            <a href="/logout">🚪 Thoát</a>
+        </div>
+    </div>
+    
+    <div class="main">
+        <div class="pixel-border">
+            <h1 style="color: #f7d44a;">📊 BẢNG XẾP HẠNG</h1>
+            <p style="color: #888; margin: 10px 0;">Top 20 chiến binh mạnh nhất!</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Tên</th>
+                        <th>Level</th>
+                        <th>XP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                        <tr>
+                            <td class="{% if loop.index == 1 %}rank-1{% elif loop.index == 2 %}rank-2{% elif loop.index == 3 %}rank-3{% endif %}">
+                                {{ loop.index }}
+                            </td>
+                            <td>{% if loop.index == 1 %}👑 {% endif %}{{ u.username }}</td>
+                            <td>{{ u.level }}</td>
+                            <td>{{ u.xp }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 20px;">
+                <a href="/home" class="btn">🏠 Về trang chủ</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
