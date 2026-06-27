@@ -415,8 +415,8 @@ def attack():
 @app.route('/api/survival/question')
 def survival_question():
     floor = request.args.get('floor', 1, type=int)
-    # Lấy câu hỏi từ database theo tầng
     questions = SurvivalQuestion.query.filter_by(floor_level=floor).all()
+    
     if not questions:
         # Fallback: dùng câu hỏi mặc định
         level_id = random.randint(1, 10)
@@ -427,6 +427,7 @@ def survival_question():
             'options': q['options'],
             'correct_answer': q['a']
         })
+    
     q = random.choice(questions)
     return jsonify({
         'id': q.id,
