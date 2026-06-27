@@ -562,18 +562,32 @@ def admin_logout():
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login'))
 
-# ===== TỰ ĐỘNG TẠO BẢNG MỚI KHI CÓ THAY ĐỔI =====
 with app.app_context():
-    # Xóa database cũ nếu có lỗi
-    try:
-        db.create_all()
-        print("✅ Database synced successfully")
-    except Exception as e:
-        print(f"❌ Database sync error: {e}")
-        # Nếu có lỗi, xóa và tạo lại
-        os.remove(DB_PATH) if os.path.exists(DB_PATH) else None
-        db.create_all()
-        print("✅ Database recreated")
+    # Kiểm tra và thêm cột nếu chưa có
+    import sqlite3
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Lấy danh sách cột hiện có
+    cursor.execute("PRAGMA table_info(user)")
+    columns = [col[1] for col in cursor.fetchall()]
+    
+    # Thêm cột mới nếu chưa có
+    new_columns = {
+        'normal_mode_best': 'INTEGER DEFAULT 0',
+        'survival_mode_best': 'INTEGER DEFAULT 0',
+        'current_hp': 'INTEGER DEFAULT 100',
+        'max_hp': 'INTEGER DEFAULT 100',
+        'checkpoint_level': 'INTEGER DEFAULT 1'
+    }
+    
+    for col_name, col_type in new_columns.items():
+        if col_name not in columns:
+            cursor.execute(f"ALTER TABLE user ADD COLUMN {col_name} {col_type}")
+            print(f"✅ Đã thêm cột {col_name}")
+    
+    conn.commit()
+    conn.close()
 # ============================================================
 # RUN
 # ============================================================
