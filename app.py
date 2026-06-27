@@ -599,6 +599,13 @@ def admin_logout():
 def init_db():
     db.create_all()
     return "✅ Database created!"
+
+with app.app_context():
+    db.create_all()
+    # Kiểm tra và tạo bảng nếu chưa có
+    if not db.engine.has_table('survival_question'):
+        db.create_all()
+        print("✅ Đã tạo bảng survival_question")
 # ============================================================
 # RUN
 # ============================================================
