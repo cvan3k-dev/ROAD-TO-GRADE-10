@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import os
@@ -48,13 +49,15 @@ class User(UserMixin, db.Model):
     survival_current_floor = db.Column(db.Integer, default=1) # Tầng hiện tại
     survival_hp = db.Column(db.Integer, default=100)          # HP hiện tại
     survival_max_hp = db.Column(db.Integer, default=100)      # HP tối đa
+    survival_bosses_killed = db.Column(db.Integer, default=0) # Boss đã tiêu diệt trong run hiện tại
+
 class Achievement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     icon = db.Column(db.String(50))
     condition = db.Column(db.String(100))
-    price = db.Column(db.Integer, default=0)  # Giá coin để đổi
+    price = db.Column(db.Integer, default=0)
 
 class UserAchievement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -89,6 +92,10 @@ def fromjson_filter(value):
             return []
     return []
 
+@app.template_filter('json')
+def json_filter(value):
+    return json.dumps(value)
+
 # ============================================================
 # KHỞI TẠO DATABASE
 # ============================================================
@@ -97,6 +104,7 @@ with app.app_context():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     db.create_all()
     
+    # Tạo admin
     if not User.query.filter_by(username='admin').first():
         admin = User(
             username='admin',
@@ -110,6 +118,7 @@ with app.app_context():
         db.session.commit()
         print("✅ Đã tạo admin: admin / admin123")
     
+    # Tạo thành tích
     if Achievement.query.count() == 0:
         achievements = [
             {'name': 'Người mới', 'description': 'Hoàn thành Level 1', 'icon': '🌱', 'condition': 'level >= 1', 'price': 0},
@@ -124,6 +133,7 @@ with app.app_context():
         db.session.commit()
         print("✅ Đã tạo thành tích mẫu")
     
+    # Tạo shop
     if ShopItem.query.count() == 0:
         shop_items = [
             {'name': 'Danh hiệu Bậc thầy', 'description': 'Danh hiệu Bậc thầy ngoại ngữ', 'icon': '📚', 'price': 200, 'category': 'title'},
@@ -171,7 +181,6 @@ def check_achievements(user_id):
         ach_id = f'ach_{ach.id}'
         if ach_id in current: continue
         condition = ach.condition
-        # Kiểm tra điều kiện
         if condition.startswith('level >= '):
             req_level = int(condition.split('>=')[1].strip())
             if user.level >= req_level:
@@ -189,7 +198,6 @@ def check_achievements(user_id):
         db.session.commit()
 
 def get_questions(level_id):
-    """Trả về danh sách 5 câu hỏi cho mỗi level"""
     questions_pool = {
         1: [
             {'q': 'Từ nào có nghĩa là "mèo"?', 'options': ['Dog', 'Cat', 'Bird', 'Fish'], 'a': 1},
@@ -358,13 +366,8 @@ def shop():
 @app.route('/leaderboard')
 def leaderboard():
     users = User.query.order_by(User.xp.desc()).limit(20).all()
-    survival_users = User.query.order_by(User.survival_mode_best.desc()).limit(20).all()
+    survival_users = User.query.order_by(User.survival_high_score.desc()).limit(20).all()
     return render_template('leaderboard.html', users=users, survival_users=survival_users)
-
-@app.route('/leaderboard/survival')
-def leaderboard_survival():
-    users = User.query.order_by(User.survival_mode_best.desc()).limit(20).all()
-    return render_template('leaderboard_survival.html', users=users)
 
 @app.route('/shop/buy/<int:item_id>', methods=['POST'])
 def buy_item(item_id):
@@ -376,7 +379,6 @@ def buy_item(item_id):
         return jsonify({'error': 'Item không tồn tại!'}), 404
     if user.coins < item.price:
         return jsonify({'error': 'Không đủ coin!'}), 400
-    # Kiểm tra đã mua chưa
     existing = UserShopItem.query.filter_by(user_id=user.id, item_id=item_id).first()
     if existing:
         return jsonify({'error': 'Đã mua item này rồi!'}), 400
@@ -386,6 +388,7 @@ def buy_item(item_id):
     db.session.commit()
     return jsonify({'success': True, 'message': f'Đã mua {item.name}!'})
 
+# ===== CHẾ ĐỘ NORMAL =====
 @app.route('/game/<int:level_id>')
 def game(level_id):
     if 'user_id' not in session:
@@ -396,11 +399,10 @@ def game(level_id):
     if not level:
         return "Level không tồn tại!", 404
     questions = get_questions(level_id)
-    # Chọn 3-5 câu hỏi ngẫu nhiên
-    import random
     selected = random.sample(questions, min(5, len(questions)))
     return render_template('game.html', user=user, level=level, questions=selected, mode='normal')
 
+# ===== CHẾ ĐỘ SURVIVAL (VƯỢT TẦNG) =====
 @app.route('/game/survival')
 def survival_game():
     if 'user_id' not in session:
@@ -427,7 +429,6 @@ def attack():
         return jsonify({'error': 'User không tồn tại!'}), 404
     
     questions = get_questions(level_id)
-    # Lấy câu hỏi theo index (nếu có)
     if question_index < len(questions):
         q = questions[question_index]
         correct = q['a']
@@ -453,62 +454,60 @@ def attack():
             'level': user.level,
             'coins': user.coins,
             'damage': 20 + level_id * 5,
-            'boss_hp_left': 100 - (question_index + 1) * 25
+            'boss_hp_left': max(0, 100 - (question_index + 1) * 25)
         })
     else:
         return jsonify({
             'correct': False,
             'message': '❌ Sai rồi!',
             'damage': 10 + level_id * 2,
-            'player_hp': 100 - (question_index + 1) * 20
+            'player_hp': max(0, 100 - (question_index + 1) * 20)
         })
 
-@app.route('/api/revive', methods=['POST'])
-def revive():
+@app.route('/api/survival/floor', methods=['POST'])
+def survival_floor():
+    """Khi vượt qua một tầng (Survival Mode)"""
     if 'user_id' not in session:
         return jsonify({'error': 'Chưa đăng nhập!'}), 401
     user = User.query.get(session['user_id'])
     if not user:
         return jsonify({'error': 'User không tồn tại!'}), 404
     
-    # Hồi sinh với giá 50 coin hoặc free nếu là lần đầu
-    if user.coins >= 50:
-        user.coins -= 50
-        user.current_hp = user.max_hp
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Hồi sinh thành công! -50 Coin'})
-    else:
-        return jsonify({'error': 'Không đủ coin để hồi sinh!'}), 400
-
-@app.route('/api/respawn', methods=['POST'])
-def respawn():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Chưa đăng nhập!'}), 401
-    user = User.query.get(session['user_id'])
-    if not user:
-        return jsonify({'error': 'User không tồn tại!'}), 404
-    
-    # Hồi sinh tại checkpoint (free)
-    user.current_hp = user.max_hp
-    user.checkpoint_level = user.level
+    user.survival_current_floor += 1
+    user.survival_bosses_killed += 1
+    if user.survival_current_floor > user.survival_high_score:
+        user.survival_high_score = user.survival_current_floor
+    user.coins += 10
     db.session.commit()
-    return jsonify({'success': True, 'message': 'Đã hồi sinh tại checkpoint!'})
+    
+    return jsonify({
+        'success': True,
+        'floor': user.survival_current_floor,
+        'high_score': user.survival_high_score,
+        'coins': user.coins
+    })
 
-@app.route('/api/survival/end', methods=['POST'])
-def survival_end():
+@app.route('/api/survival/reset', methods=['POST'])
+def survival_reset():
+    """Reset Survival Mode (khi chết)"""
     if 'user_id' not in session:
         return jsonify({'error': 'Chưa đăng nhập!'}), 401
-    data = request.json
-    bosses_killed = data.get('bosses_killed', 0)
     user = User.query.get(session['user_id'])
     if not user:
         return jsonify({'error': 'User không tồn tại!'}), 404
     
-    if bosses_killed > user.survival_mode_best:
-        user.survival_mode_best = bosses_killed
-    user.coins += bosses_killed * 10
+    # Lưu high score nếu cao hơn
+    if user.survival_bosses_killed > user.survival_high_score:
+        user.survival_high_score = user.survival_bosses_killed
+    user.survival_current_floor = 1
+    user.survival_bosses_killed = 0
+    user.survival_hp = user.survival_max_hp
     db.session.commit()
-    return jsonify({'success': True, 'message': f'Đã lưu tiến độ Survival! Boss tiêu diệt: {bosses_killed}'})
+    
+    return jsonify({
+        'success': True,
+        'high_score': user.survival_high_score
+    })
 
 @app.route('/api/normal/end', methods=['POST'])
 def normal_end():
@@ -565,32 +564,6 @@ def admin_logout():
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login'))
 
-with app.app_context():
-    # Kiểm tra và thêm cột nếu chưa có
-    import sqlite3
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    
-    # Lấy danh sách cột hiện có
-    cursor.execute("PRAGMA table_info(user)")
-    columns = [col[1] for col in cursor.fetchall()]
-    
-    # Thêm cột mới nếu chưa có
-    new_columns = {
-        'normal_mode_best': 'INTEGER DEFAULT 0',
-        'survival_mode_best': 'INTEGER DEFAULT 0',
-        'current_hp': 'INTEGER DEFAULT 100',
-        'max_hp': 'INTEGER DEFAULT 100',
-        'checkpoint_level': 'INTEGER DEFAULT 1'
-    }
-    
-    for col_name, col_type in new_columns.items():
-        if col_name not in columns:
-            cursor.execute(f"ALTER TABLE user ADD COLUMN {col_name} {col_type}")
-            print(f"✅ Đã thêm cột {col_name}")
-    
-    conn.commit()
-    conn.close()
 # ============================================================
 # RUN
 # ============================================================
