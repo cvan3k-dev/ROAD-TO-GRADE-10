@@ -3,52 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý người dùng</title>
+    <title>Admin Login</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Segoe UI', Tahoma, sans-serif; background:#0f0f1a; color:#e0e0e0; }
-        .container { display:flex; min-height:100vh; }
-        .sidebar { width:250px; background:#1a1a2e; border-right:2px solid #4a6fa5; padding:20px; }
-        .sidebar h2 { color:#f7d44a; margin-bottom:20px; }
-        .sidebar a { display:block; padding:12px 16px; color:#aaa; text-decoration:none; border-radius:8px; margin-bottom:5px; }
-        .sidebar a:hover { background:#4a6fa5; color:white; }
-        .main { flex:1; padding:30px; }
-        table { width:100%; border-collapse:collapse; margin-top:20px; }
-        th { text-align:left; padding:12px; border-bottom:2px solid #4a6fa5; color:#f7d44a; }
-        td { padding:10px; border-bottom:1px solid #2a3f5a; }
-        .badge { padding:2px 10px; border-radius:12px; font-size:12px; background:#4a6fa5; }
-        .btn { padding:6px 12px; border:2px solid #4a6fa5; background:transparent; color:white; border-radius:8px; cursor:pointer; }
-        .btn:hover { background:#4a6fa5; }
+        body { font-family:'Segoe UI', Tahoma, sans-serif; background:#0f0f1a; color:#e0e0e0; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+        .login-box { background:#1a1a2e; padding:40px; border-radius:16px; border:2px solid #4a6fa5; width:100%; max-width:400px; }
+        .login-box h1 { color:#f7d44a; text-align:center; margin-bottom:30px; }
+        .login-box input { width:100%; padding:12px; margin-bottom:15px; background:#0f0f1a; border:2px solid #2a3f5a; color:white; border-radius:8px; }
+        .login-box button { width:100%; padding:12px; background:#4a6fa5; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
+        .login-box button:hover { background:#2a3f5a; }
+        .error { color:#e74c3c; text-align:center; margin-bottom:15px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="sidebar">
-            <h2>⚔️ Admin</h2>
-            <a href="/admin/dashboard">📊 Dashboard</a>
-            <a href="/admin/users">👥 Người dùng</a>
-            <a href="/admin/survival-questions">📝 Câu hỏi Sinh tồn</a>
-            <a href="/admin/logout" style="color:#e74c3c;">🚪 Đăng xuất</a>
-        </div>
-        <div class="main">
-            <h1 style="color:#f7d44a;">👥 Quản lý người dùng</h1>
-            <table>
-                <thead><tr><th>ID</th><th>Tên</th><th>Level</th><th>XP</th><th>Coin</th><th>Rank</th><th>Ngày tạo</th></tr></thead>
-                <tbody>
-                    {% for u in users %}
-                    <tr>
-                        <td>{{ u.id }}</td>
-                        <td>{{ u.username }}</td>
-                        <td>{{ u.level }}</td>
-                        <td>{{ u.xp }}</td>
-                        <td>{{ u.coins }}</td>
-                        <td>{{ u.rank }}</td>
-                        <td>{{ u.created_at.strftime('%d/%m/%Y') }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="login-box">
+        <h1>🔐 Admin Login</h1>
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="POST">
+            <input type="text" name="username" placeholder="Tên đăng nhập" required>
+            <input type="password" name="password" placeholder="Mật khẩu" required>
+            <button type="submit">Đăng nhập</button>
+        </form>
     </div>
 </body>
 </html>
