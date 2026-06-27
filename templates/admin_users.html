@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý người dùng - Admin</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI', Tahoma, sans-serif; background:#0f0f1a; color:#e0e0e0; min-height:100vh; }
+        .container { display:flex; min-height:100vh; }
+        .sidebar {
+            width:250px; background:#1a1a2e; border-right:2px solid #e74c3c;
+            padding:20px; display:flex; flex-direction:column; gap:5px;
+        }
+        .sidebar h2 { color:#e74c3c; margin-bottom:20px; }
+        .sidebar a {
+            color:#aaa; text-decoration:none; padding:12px 16px;
+            border-radius:8px; transition:all 0.2s;
+        }
+        .sidebar a:hover { background:#e74c3c; color:white; }
+        .sidebar a.active { background:#e74c3c; color:white; }
+        .sidebar .logout { margin-top:auto; color:#e74c3c; }
+        .main { flex:1; padding:30px; }
+        .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; }
+        .header h1 { color:#f7d44a; }
+        table { width:100%; border-collapse:collapse; }
+        th { text-align:left; padding:12px; border-bottom:2px solid #e74c3c; color:#f7d44a; }
+        td { padding:12px; border-bottom:1px solid #2a3f5a; }
+        .rank-badge {
+            padding:2px 10px; border-radius:12px; font-size:12px; background:#2a3f5a; color:#aaa;
+        }
+        .rank-legend { background:#f7d44a; color:#1a1a2e; }
+        .rank-knight { background:#c0c0c0; color:#1a1a2e; }
+        .rank-warrior { background:#cd7f32; color:#1a1a2e; }
+        @media (max-width:768px) { .container { flex-direction:column; } .sidebar { width:100%; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>⚔️ Admin</h2>
+            <a href="/admin-panel/dashboard">📊 Dashboard</a>
+            <a href="/admin-panel/users" class="active">👥 Người dùng</a>
+            <a href="/admin-panel/survival-questions">📝 Câu hỏi Sinh tồn</a>
+            <a href="/admin-panel/logout" class="logout">🚪 Đăng xuất</a>
+        </div>
+        <div class="main">
+            <div class="header">
+                <h1>👥 Quản lý người dùng</h1>
+                <span style="color:#888;">Tổng: {{ users|length }}</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tên</th>
+                        <th>Level</th>
+                        <th>XP</th>
+                        <th>🪙</th>
+                        <th>Rank</th>
+                        <th>Normal Best</th>
+                        <th>Survival Best</th>
+                        <th>Ngày tham gia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>{{ u.id }}</td>
+                        <td><strong>{{ u.username }}</strong></td>
+                        <td>{{ u.level }}</td>
+                        <td>{{ u.xp }}</td>
+                        <td>{{ u.coins }}</td>
+                        <td><span class="rank-badge 
+                            {% if u.rank == 'Huyền thoại' %}rank-legend
+                            {% elif u.rank == 'Hiệp sĩ' %}rank-knight
+                            {% elif u.rank == 'Chiến binh' %}rank-warrior{% endif %}">
+                            {{ u.rank }}
+                        </span></td>
+                        <td>{{ u.normal_mode_best or 0 }}</td>
+                        <td>{{ u.survival_mode_best or 0 }}</td>
+                        <td>{{ u.created_at.strftime('%d/%m/%Y') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
