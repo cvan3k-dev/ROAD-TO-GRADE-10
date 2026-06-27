@@ -356,6 +356,7 @@ def survival_game():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
+    # Đảm bảo file template tồn tại
     return render_template('game_survival.html', user=user)
 
 # ============================================================
