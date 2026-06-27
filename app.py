@@ -22,10 +22,12 @@ CORS(app)
 # MODELS
 # ============================================================
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
+    
+    # Thông tin chung
     level = db.Column(db.Integer, default=1)
     xp = db.Column(db.Integer, default=0)
     coins = db.Column(db.Integer, default=0)
@@ -34,17 +36,18 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, default=datetime.utcnow)
     achievements = db.Column(db.Text, default='[]')
-    normal_mode_best = db.Column(db.Integer, default=0)  # Boss đã tiêu diệt (Normal)
-    survival_mode_best = db.Column(db.Integer, default=0)  # Boss đã tiêu diệt (Survival)
-    current_hp = db.Column(db.Integer, default=100)
-    max_hp = db.Column(db.Integer, default=100)
-    checkpoint_level = db.Column(db.Integer, default=0)  # Checkpoint lưu level đã qua
-    normal_mode_best = db.Column(db.Integer, default=0)  # Level cao nhất đạt được ở chế độ Normal
-    survival_mode_best = db.Column(db.Integer, default=0)  # Số boss tiêu diệt ở chế độ Survival
-    current_hp = db.Column(db.Integer, default=100)
-    max_hp = db.Column(db.Integer, default=100)
-    checkpoint_level = db.Column(db.Integer, default=1)  # Checkpoint hiện tại
-
+    
+    # ===== CHẾ ĐỘ NORMAL =====
+    normal_mode_best = db.Column(db.Integer, default=0)       # Level cao nhất đạt được
+    normal_checkpoint = db.Column(db.Integer, default=0)      # Checkpoint (level đã qua)
+    normal_hp = db.Column(db.Integer, default=100)            # HP hiện tại
+    normal_max_hp = db.Column(db.Integer, default=100)        # HP tối đa
+    
+    # ===== CHẾ ĐỘ SURVIVAL (VƯỢT TẦNG) =====
+    survival_high_score = db.Column(db.Integer, default=0)    # Số tầng cao nhất đạt được
+    survival_current_floor = db.Column(db.Integer, default=1) # Tầng hiện tại
+    survival_hp = db.Column(db.Integer, default=100)          # HP hiện tại
+    survival_max_hp = db.Column(db.Integer, default=100)      # HP tối đa
 class Achievement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
