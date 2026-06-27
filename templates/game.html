@@ -5,193 +5,304 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Battle - Road To Grade 10 RPG</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0f0f1a; color: #e0e0e0; min-height: 100vh; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI', Tahoma, sans-serif; background:#0f0f1a; color:#e0e0e0; min-height:100vh; overflow-x:hidden; }
         .header {
-            background: #1a1a2e;
-            border-bottom: 4px solid #4a6fa5;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
+            background:#1a1a2e; border-bottom:4px solid #4a6fa5; padding:15px 30px;
+            display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;
         }
-        .header .brand { color: #f7d44a; font-size: 24px; font-weight: bold; }
-        .header .nav a {
-            color: #aaa;
-            text-decoration: none;
-            margin-left: 15px;
-            transition: color 0.2s;
+        .header .brand { color:#f7d44a; font-size:24px; font-weight:bold; }
+        .header .stats { display:flex; gap:20px; flex-wrap:wrap; }
+        .header .stats span { color:#aaa; font-size:14px; }
+        .header .stats span strong { color:white; }
+        .header .nav a { color:#aaa; text-decoration:none; margin-left:15px; transition:color 0.2s; }
+        .header .nav a:hover { color:#f7d44a; }
+        .main { padding:30px; max-width:900px; margin:0 auto; }
+        .arena {
+            background:rgba(20,15,40,0.85); backdrop-filter:blur(8px);
+            border:2px solid #7b3fe0; border-radius:24px; padding:30px;
+            box-shadow:0 0 60px rgba(123,63,224,0.15), inset 0 0 60px rgba(123,63,224,0.05);
+            position:relative; overflow:hidden;
         }
-        .header .nav a:hover { color: #f7d44a; }
-        .main { padding: 30px; max-width: 800px; margin: 0 auto; }
-        .pixel-border {
-            border: 4px solid #4a6fa5;
-            padding: 30px;
-            background: #1a1a2e;
-            border-radius: 8px;
+        .arena::before {
+            content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%;
+            background:radial-gradient(circle at 30% 40%, rgba(123,63,224,0.05), transparent 60%);
+            animation:rotateGlow 20s linear infinite; pointer-events:none;
         }
-        .boss-area {
-            text-align: center;
-            padding: 30px;
-            background: #0f0f1a;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        @keyframes rotateGlow { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+        .boss-area { text-align:center; padding:20px 0 30px; position:relative; }
+        .boss-icon { font-size:80px; display:inline-block; animation:floatBoss 3s ease-in-out infinite; filter:drop-shadow(0 0 30px rgba(231,76,60,0.4)); }
+        @keyframes floatBoss { 0%,100%{transform:translateY(0px) scale(1);} 50%{transform:translateY(-15px) scale(1.05);} }
+        .boss-name { font-size:28px; color:#f7d44a; margin:10px 0 5px; text-shadow:0 0 30px rgba(247,212,74,0.3); }
+        .boss-level { color:#888; font-size:14px; letter-spacing:2px; }
+        .hp-container { max-width:400px; margin:15px auto; background:rgba(0,0,0,0.5); border-radius:12px; padding:4px; border:1px solid #e74c3c; position:relative; overflow:hidden; }
+        .hp-bar { height:20px; background:linear-gradient(90deg, #e74c3c, #c0392b); border-radius:10px; transition:width 0.5s ease; }
+        .question-box { background:rgba(0,0,0,0.3); border-radius:16px; padding:20px; margin:20px 0; border-left:4px solid #b388ff; }
+        .question-text { font-size:20px; font-weight:600; color:#f0e6ff; line-height:1.6; text-align:center; }
+        .skills-container { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:20px 0; }
+        .skill-btn {
+            background:rgba(30,20,60,0.7); border:2px solid #4a2a7a; border-radius:16px; padding:18px 10px;
+            color:#e0e0e0; cursor:pointer; transition:all 0.3s ease; text-align:center; font-family:inherit; font-size:15px;
+            position:relative; overflow:hidden; backdrop-filter:blur(4px);
         }
-        .boss-icon { font-size: 80px; }
-        .boss-name { font-size: 24px; color: #f7d44a; margin: 10px 0; }
-        .question {
-            font-size: 20px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .options {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        .opt-btn {
-            padding: 15px;
-            background: #0f0f1a;
-            border: 3px solid #2a3f5a;
-            color: white;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 16px;
-            border-radius: 8px;
-        }
-        .opt-btn:hover { border-color: #f7d44a; background: #1a1a2e; }
-        .opt-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .opt-btn.correct { border-color: #4caf50; background: #1a3a1a; }
-        .opt-btn.wrong { border-color: #e74c3c; background: #3a1a1a; }
-        .result {
-            text-align: center;
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            font-weight: bold;
-        }
-        .result.success { background: #1a3a1a; border: 2px solid #4caf50; color: #4caf50; }
-        .result.fail { background: #3a1a1a; border: 2px solid #e74c3c; color: #e74c3c; }
+        .skill-btn:hover:not(:disabled) { border-color:#b388ff; transform:translateY(-3px); box-shadow:0 8px 30px rgba(123,63,224,0.3); }
+        .skill-btn:disabled { opacity:0.4; cursor:not-allowed; filter:grayscale(0.6); }
+        .skill-btn .icon { font-size:32px; display:block; margin-bottom:6px; }
+        .skill-btn .label { font-weight:600; font-size:13px; }
+        .skill-btn.attack { border-color:#e74c3c; }
+        .skill-btn.attack:hover:not(:disabled) { border-color:#ff6b6b; box-shadow:0 0 30px rgba(231,76,60,0.3); }
+        .skill-btn.correct { border-color:#4caf50; background:#1a3a1a; }
+        .skill-btn.wrong { border-color:#e74c3c; background:#3a1a1a; }
+        .result-box { padding:18px 25px; border-radius:16px; text-align:center; font-weight:600; font-size:18px; animation:resultPop 0.4s ease; }
+        .result-box.success { background:rgba(39,174,96,0.2); border:2px solid #27ae60; color:#2ecc71; }
+        .result-box.fail { background:rgba(231,76,60,0.2); border:2px solid #e74c3c; color:#ff6b6b; }
+        .action-bar { display:flex; justify-content:center; gap:15px; flex-wrap:wrap; margin-top:25px; }
         .btn {
-            background: #4a6fa5;
-            color: white;
-            border: 3px solid #2a3f5a;
-            padding: 10px 20px;
-            cursor: pointer;
-            transition: all 0.1s;
-            font-weight: bold;
-            text-decoration: none;
-            display: inline-block;
+            background:#4a6fa5; color:white; border:3px solid #2a3f5a; padding:10px 20px;
+            cursor:pointer; transition:all 0.1s; font-weight:bold; text-decoration:none; display:inline-block;
         }
-        .btn:hover { transform: translate(2px, 2px); }
-        .btn-gold { background: #f7d44a; color: #1a1a2e; border-color: #b8960a; }
-        .flex-center { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
-        @media (max-width: 480px) {
-            .options { grid-template-columns: 1fr; }
+        .btn:hover { transform:translate(2px,2px); }
+        .btn-gold { background:#f7d44a; color:#1a1a2e; border-color:#b8960a; }
+        .btn-danger { background:#e74c3c; border-color:#a93226; }
+        .btn-success { background:#27ae60; border-color:#1e8449; }
+        @keyframes resultPop { 0%{transform:scale(0.8); opacity:0;} 100%{transform:scale(1); opacity:1;} }
+        @keyframes sparkleAnim { 0%{transform:scale(0) translateY(0) rotate(0deg); opacity:1;} 100%{transform:scale(1.5) translateY(-80px) rotate(180deg); opacity:0;} }
+        @keyframes shieldPulse { 0%{transform:scale(0.5); opacity:1;} 100%{transform:scale(1.2); opacity:0;} }
+        .sparkle { position:absolute; width:6px; height:6px; background:#f7d44a; border-radius:50%; pointer-events:none; box-shadow:0 0 20px #f7d44a; animation:sparkleAnim 0.5s ease-out forwards; }
+        .shield-effect { position:absolute; top:10%; left:10%; width:80%; height:80%; border-radius:50%; border:4px solid rgba(52,152,219,0.6); pointer-events:none; box-shadow:0 0 60px rgba(52,152,219,0.3); animation:shieldPulse 0.8s ease-out forwards; z-index:2; }
+        .toast {
+            position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+            background:#2d3436; color:white; padding:15px 30px; border-radius:50px;
+            font-weight:600; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:9999;
+            animation:slideUp 0.5s ease; max-width:90%; text-align:center;
         }
+        @keyframes slideUp { from { transform:translateX(-50%) translateY(50px); opacity:0; } to { transform:translateX(-50%) translateY(0); opacity:1; } }
+        @media (max-width:768px) { .header { flex-direction:column; gap:10px; text-align:center; } .skills-container { grid-template-columns:1fr; } }
     </style>
 </head>
 <body>
     <div class="header">
         <div class="brand">🎮 Road To Grade 10 RPG</div>
+        <div class="stats">
+            <span>Level <strong id="userLevel">{{ user.level }}</strong></span>
+            <span>XP <strong id="userXp">{{ user.xp }}</strong></span>
+            <span>🪙 <strong id="userCoins">{{ user.coins }}</strong></span>
+            <span>❤️ <strong id="playerHpDisplay">100</strong></span>
+        </div>
         <div class="nav">
             <a href="/home">🏠 Trang chủ</a>
             <a href="/profile">👤 Profile</a>
             <a href="/roadmap">🗺️ Roadmap</a>
-            <a href="/achievement">🏆 Thành tích</a>
-            <a href="/leaderboard">📊 Bảng xếp hạng</a>
             <a href="/logout">🚪 Thoát</a>
         </div>
     </div>
-    
     <div class="main">
-        <div class="pixel-border">
+        <div class="arena" id="arena">
             <div class="boss-area">
                 <div class="boss-icon">👹</div>
                 <div class="boss-name">⚔️ {{ level.boss }}</div>
-                <div style="color: #888;">Level {{ level.id }}: {{ level.name }}</div>
+                <div class="boss-level">Level {{ level.id }}: {{ level.name }}</div>
+                <div class="hp-container"><div class="hp-bar" id="bossHpBar" style="width:100%;"></div></div>
             </div>
-            
-            <div id="gameArea">
-                <div class="question">{{ question.question }}</div>
-                <div class="options" id="optionsContainer">
-                    {% for opt in question.options %}
-                        <button class="opt-btn" onclick="attack({{ loop.index0 }})">
-                            {{ opt }}
-                        </button>
-                    {% endfor %}
-                </div>
-                <div id="resultArea"></div>
+            <div class="question-box">
+                <div class="question-text" id="questionText">{{ questions[0].q }}</div>
             </div>
-            
-            <div class="flex-center">
-                <a href="/roadmap" class="btn">🗺️ Về Roadmap</a>
-                <a href="/home" class="btn">🏠 Về trang chủ</a>
-                {% if user.level < 10 %}
-                    <a href="/game/{{ user.level + 1 }}" class="btn btn-gold" id="nextBtn" style="display:none;">⚔️ Level tiếp theo</a>
-                {% else %}
-                    <a href="/game/10" class="btn btn-gold" id="nextBtn" style="display:none;">⚔️ Đánh lại Boss cuối</a>
-                {% endif %}
+            <div class="skills-container" id="skillsContainer">
+                {% for opt in questions[0].options %}
+                    <button class="skill-btn attack" onclick="attack({{ loop.index0 }}, this)">
+                        <span class="icon">⚡</span>
+                        <span class="label">{{ opt }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+            <div id="resultArea"></div>
+            <div class="action-bar">
+                <a href="/roadmap" class="btn">🗺️ Roadmap</a>
+                <a href="/home" class="btn">🏠 Trang chủ</a>
+                <button class="btn btn-success" id="nextBtn" style="display:none;" onclick="nextQuestion()">➡️ Câu tiếp theo</button>
+                <button class="btn btn-danger" id="reviveBtn" style="display:none;" onclick="revive()">💚 Hồi sinh (50 Coin)</button>
             </div>
         </div>
     </div>
-
     <script>
-        let answered = false;
         let levelId = {{ level.id }};
-        let questionData = {{ question | tojson }};
+        let mode = '{{ mode }}';
+        let questions = {{ questions | tojson }};
+        let currentIndex = 0;
+        let bossHp = 100;
+        let playerHp = 100;
+        let answered = false;
+        let correctCount = 0;
+        let wrongCount = 0;
+        let bossesKilled = 0;
 
-        async function attack(answer) {
+        function updateUI() {
+            document.getElementById('bossHpBar').style.width = Math.max(0, bossHp) + '%';
+            document.getElementById('playerHpDisplay').textContent = playerHp;
+        }
+
+        async function attack(answer, btn) {
             if (answered) return;
             answered = true;
-            
-            const buttons = document.querySelectorAll('.opt-btn');
-            buttons.forEach(btn => btn.disabled = true);
-            
+
+            const allBtns = document.querySelectorAll('.skill-btn:not([disabled])');
+            allBtns.forEach(b => b.disabled = true);
+
             try {
                 const res = await fetch('/api/attack', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         level_id: levelId,
-                        answer: answer
+                        answer: answer,
+                        question_index: currentIndex,
+                        mode: mode
                     })
                 });
                 const data = await res.json();
-                
                 const resultArea = document.getElementById('resultArea');
-                const nextBtn = document.getElementById('nextBtn');
-                
+
                 if (data.correct) {
-                    buttons[answer].classList.add('correct');
-                    resultArea.innerHTML = `<div class="result success">🎉 ${data.message}</div>`;
-                    // Cập nhật XP và Level trên UI
-                    document.querySelector('.stats').innerHTML = `
-                        <span>Level <strong>${data.level}</strong></span>
-                        <span>XP <strong>${data.xp}</strong></span>
-                    `;
-                    // Hiện nút tiếp theo
-                    nextBtn.style.display = 'inline-block';
+                    btn.classList.add('correct');
+                    correctCount++;
+                    bossHp = Math.max(0, bossHp - data.damage);
+                    resultArea.innerHTML = `<div class="result-box success">🎉 ${data.message}</div>`;
+                    document.getElementById('userLevel').textContent = data.level;
+                    document.getElementById('userXp').textContent = data.xp;
+                    document.getElementById('userCoins').textContent = data.coins;
+                    createSparkles();
+
+                    if (bossHp <= 0) {
+                        resultArea.innerHTML += `<div class="result-box success" style="margin-top:15px;">🏆 BOSS ĐÃ BỊ ĐÁNH BẠI!</div>`;
+                        bossesKilled++;
+                        document.getElementById('nextBtn').style.display = 'inline-block';
+                        document.getElementById('nextBtn').textContent = '➡️ Level tiếp theo';
+                        if (mode === 'survival') {
+                            // Survival: tự động chuyển boss mới
+                            setTimeout(() => nextQuestion(), 2000);
+                        }
+                    } else {
+                        document.getElementById('nextBtn').style.display = 'inline-block';
+                        document.getElementById('nextBtn').textContent = '➡️ Câu tiếp theo';
+                    }
                 } else {
-                    buttons[answer].classList.add('wrong');
-                    resultArea.innerHTML = `<div class="result fail">❌ ${data.message}</div>`;
-                    // Cho phép thử lại
+                    btn.classList.add('wrong');
+                    playerHp = Math.max(0, playerHp - data.damage);
+                    updateUI();
+                    resultArea.innerHTML = `<div class="result-box fail">❌ ${data.message}</div>`;
+                    wrongCount++;
+
+                    if (playerHp <= 0 || wrongCount >= 4) {
+                        resultArea.innerHTML += `<div class="result-box fail" style="margin-top:15px;">💀 BẠN ĐÃ THUA!</div>`;
+                        document.getElementById('reviveBtn').style.display = 'inline-block';
+                        document.getElementById('nextBtn').style.display = 'none';
+                        if (mode === 'survival') {
+                            // Survival: kết thúc, lưu tiến độ
+                            await fetch('/api/survival/end', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ bosses_killed: bossesKilled })
+                            });
+                        } else {
+                            await fetch('/api/normal/end', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ bosses_killed: bossesKilled })
+                            });
+                        }
+                        return;
+                    }
                     setTimeout(() => {
-                        buttons.forEach(btn => {
-                            btn.disabled = false;
-                            btn.classList.remove('wrong');
-                        });
+                        allBtns.forEach(b => { b.disabled = false; b.classList.remove('wrong'); });
                         answered = false;
                     }, 2000);
                 }
+                updateUI();
             } catch (err) {
                 console.error(err);
-                resultArea.innerHTML = `<div class="result fail">❌ Lỗi kết nối server!</div>`;
+                resultArea.innerHTML = `<div class="result-box fail">❌ Lỗi kết nối server!</div>`;
                 answered = false;
-                document.querySelectorAll('.opt-btn').forEach(btn => btn.disabled = false);
+                document.querySelectorAll('.skill-btn:not([disabled])').forEach(b => b.disabled = false);
             }
         }
+
+        function nextQuestion() {
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('reviveBtn').style.display = 'none';
+            currentIndex++;
+            if (currentIndex >= questions.length) {
+                // Chuyển level mới hoặc kết thúc
+                if (mode === 'normal' && levelId < 10) {
+                    window.location.href = `/game/${levelId + 1}`;
+                } else {
+                    window.location.href = '/home';
+                }
+                return;
+            }
+            // Hiển thị câu hỏi tiếp theo
+            const q = questions[currentIndex];
+            document.getElementById('questionText').textContent = q.q;
+            const container = document.getElementById('skillsContainer');
+            container.innerHTML = q.options.map((opt, idx) =>
+                `<button class="skill-btn attack" onclick="attack(${idx}, this)">
+                    <span class="icon">⚡</span>
+                    <span class="label">${opt}</span>
+                </button>`
+            ).join('');
+            document.getElementById('resultArea').innerHTML = '';
+            answered = false;
+            bossHp = Math.min(100, bossHp + 20); // Boss hồi phục một ít
+            updateUI();
+        }
+
+        async function revive() {
+            try {
+                const res = await fetch('/api/revive', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    playerHp = 100;
+                    wrongCount = 0;
+                    document.getElementById('reviveBtn').style.display = 'none';
+                    document.getElementById('resultArea').innerHTML = `<div class="result-box success">💚 ${data.message}</div>`;
+                    updateUI();
+                    // Cho phép tiếp tục
+                    document.querySelectorAll('.skill-btn:not([disabled])').forEach(b => b.disabled = false);
+                    answered = false;
+                } else {
+                    showToast(data.error || 'Không đủ coin!');
+                }
+            } catch (err) {
+                showToast('Lỗi kết nối!');
+            }
+        }
+
+        function createSparkles() {
+            const arena = document.getElementById('arena');
+            for (let i = 0; i < 15; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'sparkle';
+                spark.style.top = Math.random() * 100 + '%';
+                spark.style.left = Math.random() * 100 + '%';
+                arena.appendChild(spark);
+                setTimeout(() => spark.remove(), 1200);
+            }
+        }
+
+        function showToast(msg) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+
+        updateUI();
     </script>
 </body>
 </html>

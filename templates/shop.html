@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop - Road To Grade 10 RPG</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI', Tahoma, sans-serif; background:#0f0f1a; color:#e0e0e0; min-height:100vh; }
+        .header {
+            background:#1a1a2e; border-bottom:4px solid #4a6fa5; padding:15px 30px;
+            display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;
+        }
+        .header .brand { color:#f7d44a; font-size:24px; font-weight:bold; }
+        .header .stats { display:flex; gap:20px; flex-wrap:wrap; }
+        .header .stats span { color:#aaa; font-size:14px; }
+        .header .stats span strong { color:white; }
+        .header .nav a { color:#aaa; text-decoration:none; margin-left:15px; transition:color 0.2s; }
+        .header .nav a:hover { color:#f7d44a; }
+        .main { padding:30px; max-width:1000px; margin:0 auto; }
+        .pixel-border {
+            border:4px solid #4a6fa5; padding:30px; background:#1a1a2e; border-radius:8px;
+        }
+        .shop-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:15px; margin-top:20px; }
+        .shop-item {
+            border:3px solid #2a3f5a; padding:20px; text-align:center; border-radius:8px; background:#0f0f1a; transition:all 0.3s;
+        }
+        .shop-item .icon { font-size:48px; }
+        .shop-item .name { font-size:16px; font-weight:bold; margin:10px 0; }
+        .shop-item .price { font-size:14px; color:#f7d44a; }
+        .shop-item .desc { font-size:12px; color:#888; }
+        .shop-item.owned { border-color:#4caf50; background:#1a3a1a; }
+        .btn {
+            background:#4a6fa5; color:white; border:3px solid #2a3f5a; padding:8px 16px;
+            cursor:pointer; transition:all 0.1s; font-weight:bold; text-decoration:none; display:inline-block;
+        }
+        .btn:hover { transform:translate(2px,2px); }
+        .btn-gold { background:#f7d44a; color:#1a1a2e; border-color:#b8960a; }
+        .btn-disabled { opacity:0.5; cursor:not-allowed; }
+        .btn-small { padding:5px 12px; font-size:12px; }
+        .toast {
+            position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+            background:#2d3436; color:white; padding:15px 30px; border-radius:50px;
+            font-weight:600; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:9999;
+            animation:slideUp 0.5s ease; max-width:90%; text-align:center;
+        }
+        @keyframes slideUp { from { transform:translateX(-50%) translateY(50px); opacity:0; } to { transform:translateX(-50%) translateY(0); opacity:1; } }
+        @media (max-width:768px) { .header { flex-direction:column; gap:10px; text-align:center; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="brand">🎮 Road To Grade 10 RPG</div>
+        <div class="stats">
+            <span>🪙 <strong>{{ user.coins }}</strong></span>
+        </div>
+        <div class="nav">
+            <a href="/home">🏠 Trang chủ</a>
+            <a href="/profile">👤 Profile</a>
+            <a href="/roadmap">🗺️ Roadmap</a>
+            <a href="/achievement">🏆 Thành tích</a>
+            <a href="/shop">🛒 Shop</a>
+            <a href="/leaderboard">📊 Bảng xếp hạng</a>
+            <a href="/logout">🚪 Thoát</a>
+        </div>
+    </div>
+    <div class="main">
+        <div class="pixel-border">
+            <h1 style="color:#f7d44a;">🛒 CỬA HÀNG</h1>
+            <p style="color:#888; margin:10px 0;">Dùng Coin để đổi các danh hiệu đặc biệt!</p>
+            <div class="shop-grid">
+                {% for item in shop_items %}
+                <div class="shop-item {% if item.id in purchased_ids %}owned{% endif %}">
+                    <div class="icon">{{ item.icon }}</div>
+                    <div class="name">{{ item.name }}</div>
+                    <div class="desc">{{ item.description }}</div>
+                    <div class="price">🪙 {{ item.price }}</div>
+                    {% if item.id in purchased_ids %}
+                        <button class="btn btn-disabled" disabled>✅ Đã sở hữu</button>
+                    {% else %}
+                        <button class="btn btn-gold btn-small" onclick="buyItem({{ item.id }})">Mua</button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <div style="margin-top:20px;">
+                <a href="/home" class="btn">🏠 Về trang chủ</a>
+            </div>
+        </div>
+    </div>
+    <script>
+        async function buyItem(itemId) {
+            try {
+                const res = await fetch(`/shop/buy/${itemId}`, { method: 'POST' });
+                const data = await res.json();
+                showToast(data.message || data.error);
+                if (data.success) {
+                    setTimeout(() => location.reload(), 1500);
+                }
+            } catch (err) {
+                showToast('Lỗi kết nối!');
+            }
+        }
+        function showToast(msg) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

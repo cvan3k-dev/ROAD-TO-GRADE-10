@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang chủ - Road To Grade 10 RPG</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0f0f1a; color: #e0e0e0; min-height: 100vh; }
+        .header {
+            background: #1a1a2e;
+            border-bottom: 4px solid #4a6fa5;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header .brand { color: #f7d44a; font-size: 24px; font-weight: bold; }
+        .header .stats { display: flex; gap: 20px; flex-wrap: wrap; }
+        .header .stats span { color: #aaa; font-size: 14px; }
+        .header .stats span strong { color: white; }
+        .header .nav a { color: #aaa; text-decoration: none; margin-left: 15px; transition: color 0.2s; }
+        .header .nav a:hover { color: #f7d44a; }
+        .main { padding: 30px; max-width: 1200px; margin: 0 auto; }
+        .pixel-border {
+            border: 4px solid #4a6fa5;
+            padding: 20px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .welcome-section { text-align: center; padding: 20px; }
+        .welcome-section h1 { color: #f7d44a; font-size: 32px; margin-bottom: 10px; }
+        .welcome-section p { color: #aaa; font-size: 16px; margin-bottom: 20px; }
+        .btn {
+            background: #4a6fa5; color: white; border: 3px solid #2a3f5a;
+            padding: 10px 20px; cursor: pointer; transition: all 0.1s;
+            font-weight: bold; text-decoration: none; display: inline-block;
+            border-radius: 4px;
+        }
+        .btn:hover { transform: translate(2px,2px); }
+        .btn-gold { background: #f7d44a; color: #1a1a2e; border-color: #b8960a; }
+        .btn-success { background: #27ae60; border-color: #1e8449; }
+        .btn-danger { background: #e74c3c; border-color: #a93226; }
+        .btn-large { padding: 15px 40px; font-size: 20px; }
+        .level-item {
+            border: 2px solid #2a3f5a; padding: 15px; text-align: center;
+            transition: all 0.2s; cursor: pointer; background: #0f0f1a; border-radius: 8px;
+        }
+        .level-item.unlocked { border-color: #4caf50; background: #1a3a1a; }
+        .level-item.locked { opacity: 0.5; cursor: not-allowed; }
+        .level-item .icon { font-size: 40px; }
+        .level-item .name { font-size: 12px; margin-top: 5px; }
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+        .ach-item {
+            text-align: center; padding: 10px; border: 2px solid #2a3f5a; border-radius: 8px;
+        }
+        .ach-item.unlocked { border-color: #f7d44a; background: #1a1a2e; }
+        .ach-item.locked { opacity: 0.3; }
+        .ach-item .icon { font-size: 30px; }
+        .ach-item .name { font-size: 10px; }
+        @media (max-width:768px) { .grid-2 { grid-template-columns:1fr; } .header { flex-direction:column; gap:10px; text-align:center; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="brand">🎮 Road To Grade 10 RPG</div>
+        <div class="stats">
+            <span>Level <strong>{{ user.level }}</strong></span>
+            <span>XP <strong>{{ user.xp }}</strong></span>
+            <span>🪙 <strong>{{ user.coins }}</strong></span>
+            <span>🏅 <strong>{{ user.rank }}</strong></span>
+        </div>
+        <div class="nav">
+            <a href="/home">🏠 Trang chủ</a>
+            <a href="/profile">👤 Profile</a>
+            <a href="/roadmap">🗺️ Roadmap</a>
+            <a href="/achievement">🏆 Thành tích</a>
+            <a href="/shop">🛒 Shop</a>
+            <a href="/leaderboard">📊 Bảng xếp hạng</a>
+            <a href="/logout">🚪 Thoát</a>
+        </div>
+    </div>
+    <div class="main">
+        <div class="pixel-border welcome-section">
+            <h1>⚔️ Chào mừng, {{ user.username }}!</h1>
+            <p>Bạn đang ở Level {{ user.level }} với {{ user.xp }} XP và {{ user.coins }} Coin.</p>
+            <a href="/game/{{ user.level if user.level <= 10 else 10 }}" class="btn btn-gold btn-large">🚀 VÀO GAME NGAY</a>
+            <a href="/game/survival" class="btn btn-danger btn-large" style="margin-left:10px;">☠️ CHẾ ĐỘ SINH TỒN</a>
+        </div>
+        <div class="pixel-border">
+            <h3 style="color:#f7d44a;">🗺️ Roadmap nhanh</h3>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px;">
+                {% for i in range(1,11) %}
+                <div class="level-item {% if i <= user.level %}unlocked{% else %}locked{% endif %}" onclick="{% if i <= user.level %}location.href='/game/{{ i }}'{% endif %}">
+                    <div class="icon">{% if i <= 3 %}🌲{% elif i <= 6 %}🏰{% else %}🏯{% endif %}</div>
+                    <div class="name">Level {{ i }}</div>
+                    <div class="name" style="font-size:10px;color:#888;">{% if i <= user.level %}✅ Mở khóa{% else %}🔒 Khóa{% endif %}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="pixel-border">
+                <h3 style="color:#f7d44a;">📊 Bảng xếp hạng Normal</h3>
+                <div style="max-height:250px; overflow-y:auto;">
+                    <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                        <tr style="border-bottom:1px solid #2a3f5a;"><th>#</th><th>Tên</th><th>Level</th><th>XP</th><th>Boss</th></tr>
+                        {% for u in leaderboard %}
+                        <tr style="border-bottom:1px solid #1a1a2e;">
+                            <td>{{ loop.index }}</td>
+                            <td>{{ u.username }}</td>
+                            <td>{{ u.level }}</td>
+                            <td>{{ u.xp }}</td>
+                            <td>{{ u.normal_mode_best }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                <a href="/leaderboard" class="btn" style="margin-top:10px;">Xem tất cả</a>
+            </div>
+            <div class="pixel-border">
+                <h3 style="color:#f7d44a;">🏆 Thành tích gần đây</h3>
+                <div class="achievement-grid">
+                    {% set unlocked = user.achievements | fromjson %}
+                    {% for ach in all_ach[:4] %}
+                    <div class="ach-item {% if 'ach_' ~ ach.id in unlocked %}unlocked{% else %}locked{% endif %}">
+                        <div class="icon">{{ ach.icon }}</div>
+                        <div class="name">{{ ach.name }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <a href="/achievement" class="btn" style="margin-top:10px;">Xem tất cả</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
