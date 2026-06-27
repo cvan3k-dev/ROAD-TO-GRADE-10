@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý câu hỏi Sinh tồn</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI', Tahoma, sans-serif; background:#0f0f1a; color:#e0e0e0; padding:20px; }
+        .container { max-width:1200px; margin:0 auto; }
+        .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; }
+        .header h1 { color:#f7d44a; }
+        .btn {
+            padding:10px 20px; border:2px solid #4a6fa5; background:#1a1a2e; color:white;
+            cursor:pointer; transition:all 0.2s; border-radius:8px;
+        }
+        .btn:hover { transform:translateY(-2px); box-shadow:0 4px 20px rgba(74,111,165,0.3); }
+        .btn-primary { background:#4a6fa5; border-color:#2a3f5a; }
+        .btn-danger { background:#e74c3c; border-color:#a93226; }
+        .btn-success { background:#27ae60; border-color:#1e8449; }
+        table { width:100%; border-collapse:collapse; margin-top:20px; }
+        th { text-align:left; padding:12px; background:#1a1a2e; border-bottom:2px solid #4a6fa5; color:#f7d44a; }
+        td { padding:12px; border-bottom:1px solid #2a3f5a; }
+        .modal {
+            display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index:1000;
+        }
+        .modal.show { display:flex; }
+        .modal-content {
+            background:#1a1a2e; padding:30px; border-radius:16px; max-width:600px; width:90%;
+            border:2px solid #4a6fa5; max-height:90vh; overflow-y:auto;
+        }
+        .modal-content h2 { color:#f7d44a; margin-bottom:20px; }
+        .modal-content label { display:block; margin:10px 0 5px; color:#aaa; }
+        .modal-content input, .modal-content textarea, .modal-content select {
+            width:100%; padding:10px; background:#0f0f1a; border:2px solid #2a3f5a;
+            color:white; border-radius:8px; margin-bottom:10px;
+        }
+        .modal-content textarea { min-height:60px; resize:vertical; }
+        .close { float:right; cursor:pointer; font-size:28px; color:#aaa; }
+        .close:hover { color:white; }
+        .badge { padding:3px 10px; border-radius:12px; font-size:12px; }
+        .badge-easy { background:#27ae60; }
+        .badge-medium { background:#f39c12; }
+        .badge-hard { background:#e74c3c; }
+        @media (max-width:768px) { .options-group { grid-template-columns:1fr !important; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Quản lý câu hỏi Sinh tồn</h1>
+            <div>
+                <button class="btn btn-success" onclick="openAddModal()">➕ Thêm câu hỏi</button>
+                <a href="/admin/dashboard" class="btn">⬅ Quay lại</a>
+            </div>
+        </div>
+
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Câu hỏi</th>
+                        <th>Đáp án</th>
+                        <th>Tầng</th>
+                        <th>Độ khó</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="questionTableBody">
+                    <tr><td colspan="6" style="text-align:center;color:#888;">Đang tải...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal thêm/sửa -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Thêm câu hỏi</h2>
+            <form id="editForm" onsubmit="saveQuestion(event)">
+                <input type="hidden" id="editId">
+                <label>Câu hỏi</label>
+                <textarea id="editQuestion" required></textarea>
+                <label>Đáp án A</label>
+                <input type="text" id="editOptA" required>
+                <label>Đáp án B</label>
+                <input type="text" id="editOptB" required>
+                <label>Đáp án C</label>
+                <input type="text" id="editOptC" required>
+                <label>Đáp án D</label>
+                <input type="text" id="editOptD" required>
+                <label>Đáp án đúng (0=A, 1=B, 2=C, 3=D)</label>
+                <input type="number" id="editCorrect" value="0" min="0" max="3" required>
+                <label>Tầng áp dụng</label>
+                <input type="number" id="editFloor" value="1" min="1" required>
+                <label>Độ khó</label>
+                <select id="editDifficulty">
+                    <option value="1">Dễ</option>
+                    <option value="2">Trung bình</option>
+                    <option value="3">Khó</option>
+                </select>
+                <button type="submit" class="btn btn-primary" style="width:100%;">Lưu</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api/admin/survival-questions';
+
+        async function loadQuestions() {
+            const tbody = document.getElementById('questionTableBody');
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;">Chưa có câu hỏi nào!</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.map(q => `
+                    <tr>
+                        <td>${q.id}</td>
+                        <td>${q.question.substring(0, 60)}${q.question.length > 60 ? '...' : ''}</td>
+                        <td>${['A','B','C','D'][q.correct_answer]}</td>
+                        <td>${q.floor_level}</td>
+                        <td><span class="badge badge-${['easy','medium','hard'][q.difficulty-1] || 'medium'}">${['Dễ','Trung bình','Khó'][q.difficulty-1] || 'Trung bình'}</span></td>
+                        <td>
+                            <button class="btn btn-warning" onclick="editQuestion(${q.id})">✏️</button>
+                            <button class="btn btn-danger" onclick="deleteQuestion(${q.id})">🗑️</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#e74c3c;">❌ Lỗi tải dữ liệu: ${err.message}</td></tr>`;
+                console.error(err);
+            }
+        }
+
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = '➕ Thêm câu hỏi';
+            document.getElementById('editId').value = '';
+            document.getElementById('editQuestion').value = '';
+            document.getElementById('editOptA').value = '';
+            document.getElementById('editOptB').value = '';
+            document.getElementById('editOptC').value = '';
+            document.getElementById('editOptD').value = '';
+            document.getElementById('editCorrect').value = 0;
+            document.getElementById('editFloor').value = 1;
+            document.getElementById('editDifficulty').value = 1;
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        async function editQuestion(id) {
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                const q = data.find(item => item.id === id);
+                if (!q) return;
+                document.getElementById('modalTitle').textContent = '✏️ Sửa câu hỏi';
+                document.getElementById('editId').value = q.id;
+                document.getElementById('editQuestion').value = q.question;
+                document.getElementById('editOptA').value = q.options[0] || '';
+                document.getElementById('editOptB').value = q.options[1] || '';
+                document.getElementById('editOptC').value = q.options[2] || '';
+                document.getElementById('editOptD').value = q.options[3] || '';
+                document.getElementById('editCorrect').value = q.correct_answer;
+                document.getElementById('editFloor').value = q.floor_level;
+                document.getElementById('editDifficulty').value = q.difficulty;
+                document.getElementById('editModal').classList.add('show');
+            } catch (err) {
+                alert('Lỗi tải dữ liệu: ' + err.message);
+            }
+        }
+
+        async function saveQuestion(e) {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const data = {
+                question: document.getElementById('editQuestion').value,
+                options: [
+                    document.getElementById('editOptA').value,
+                    document.getElementById('editOptB').value,
+                    document.getElementById('editOptC').value,
+                    document.getElementById('editOptD').value
+                ],
+                correct_answer: parseInt(document.getElementById('editCorrect').value),
+                floor_level: parseInt(document.getElementById('editFloor').value),
+                difficulty: parseInt(document.getElementById('editDifficulty').value)
+            };
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_URL}/${id}` : API_URL;
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    alert(result.message || 'Thành công!');
+                    closeModal();
+                    loadQuestions();
+                } else {
+                    alert(result.error || 'Lỗi!');
+                }
+            } catch (err) {
+                alert('Lỗi kết nối: ' + err.message);
+            }
+        }
+
+        async function deleteQuestion(id) {
+            if (!confirm('Bạn có chắc muốn xóa câu hỏi này?')) return;
+            try {
+                const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (res.ok) {
+                    alert(result.message);
+                    loadQuestions();
+                } else {
+                    alert(result.error || 'Lỗi!');
+                }
+            } catch (err) {
+                alert('Lỗi kết nối: ' + err.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('show');
+        }
+
+        window.onclick = function(event) {
+            if (event.target === document.getElementById('editModal')) {
+                closeModal();
+            }
+        };
+
+        loadQuestions();
+    </script>
+</body>
+</html>
