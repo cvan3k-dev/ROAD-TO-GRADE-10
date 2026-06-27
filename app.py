@@ -595,6 +595,10 @@ def admin_logout():
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login'))
 
+@app.route('/init-db')
+def init_db():
+    db.create_all()
+    return "✅ Database created!"
 # ============================================================
 # RUN
 # ============================================================
