@@ -35,6 +35,7 @@
         @keyframes floatBoss { 0%,100%{transform:translateY(0px) scale(1);} 50%{transform:translateY(-15px) scale(1.05);} }
         .boss-name { font-size:28px; color:#f7d44a; margin:10px 0 5px; text-shadow:0 0 30px rgba(247,212,74,0.3); }
         .boss-level { color:#888; font-size:14px; letter-spacing:2px; }
+        .floor-display { color:#b388ff; font-size:16px; margin:5px 0; }
         .hp-container { max-width:400px; margin:15px auto; background:rgba(0,0,0,0.5); border-radius:12px; padding:4px; border:1px solid #e74c3c; position:relative; overflow:hidden; }
         .hp-bar { height:20px; background:linear-gradient(90deg, #e74c3c, #c0392b); border-radius:10px; transition:width 0.5s ease; }
         .question-box { background:rgba(0,0,0,0.3); border-radius:16px; padding:20px; margin:20px 0; border-left:4px solid #b388ff; }
@@ -56,6 +57,7 @@
         .result-box { padding:18px 25px; border-radius:16px; text-align:center; font-weight:600; font-size:18px; animation:resultPop 0.4s ease; }
         .result-box.success { background:rgba(39,174,96,0.2); border:2px solid #27ae60; color:#2ecc71; }
         .result-box.fail { background:rgba(231,76,60,0.2); border:2px solid #e74c3c; color:#ff6b6b; }
+        .result-box.floor-up { background:rgba(123,63,224,0.3); border:2px solid #b388ff; color:#b388ff; font-size:24px; }
         .action-bar { display:flex; justify-content:center; gap:15px; flex-wrap:wrap; margin-top:25px; }
         .btn {
             background:#4a6fa5; color:white; border:3px solid #2a3f5a; padding:10px 20px;
@@ -68,8 +70,10 @@
         @keyframes resultPop { 0%{transform:scale(0.8); opacity:0;} 100%{transform:scale(1); opacity:1;} }
         @keyframes sparkleAnim { 0%{transform:scale(0) translateY(0) rotate(0deg); opacity:1;} 100%{transform:scale(1.5) translateY(-80px) rotate(180deg); opacity:0;} }
         @keyframes shieldPulse { 0%{transform:scale(0.5); opacity:1;} 100%{transform:scale(1.2); opacity:0;} }
+        @keyframes floorUpAnim { 0%{transform:scale(0.5); opacity:0;} 50%{transform:scale(1.2); opacity:1;} 100%{transform:scale(1); opacity:1;} }
         .sparkle { position:absolute; width:6px; height:6px; background:#f7d44a; border-radius:50%; pointer-events:none; box-shadow:0 0 20px #f7d44a; animation:sparkleAnim 0.5s ease-out forwards; }
         .shield-effect { position:absolute; top:10%; left:10%; width:80%; height:80%; border-radius:50%; border:4px solid rgba(52,152,219,0.6); pointer-events:none; box-shadow:0 0 60px rgba(52,152,219,0.3); animation:shieldPulse 0.8s ease-out forwards; z-index:2; }
+        .floor-up-effect { position:absolute; top:0; left:0; width:100%; height:100%; background:radial-gradient(circle, rgba(123,63,224,0.4), transparent 70%); animation:floorUpAnim 0.8s ease-out forwards; pointer-events:none; z-index:1; }
         .toast {
             position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
             background:#2d3436; color:white; padding:15px 30px; border-radius:50px;
@@ -87,7 +91,10 @@
             <span>Level <strong id="userLevel">{{ user.level }}</strong></span>
             <span>XP <strong id="userXp">{{ user.xp }}</strong></span>
             <span>🪙 <strong id="userCoins">{{ user.coins }}</strong></span>
-            <span>❤️ <strong id="playerHpDisplay">100</strong></span>
+            <span>❤️ <strong id="playerHpDisplay">{{ user.normal_hp if mode == 'normal' else user.survival_hp }}</strong></span>
+            {% if mode == 'survival' %}
+                <span>🏰 Tầng <strong id="floorDisplay">{{ user.survival_current_floor or 1 }}</strong></span>
+            {% endif %}
         </div>
         <div class="nav">
             <a href="/home">🏠 Trang chủ</a>
@@ -102,6 +109,9 @@
                 <div class="boss-icon">👹</div>
                 <div class="boss-name">⚔️ {{ level.boss }}</div>
                 <div class="boss-level">Level {{ level.id }}: {{ level.name }}</div>
+                {% if mode == 'survival' %}
+                    <div class="floor-display">🏰 Tầng {{ user.survival_current_floor or 1 }}</div>
+                {% endif %}
                 <div class="hp-container"><div class="hp-bar" id="bossHpBar" style="width:100%;"></div></div>
             </div>
             <div class="question-box">
@@ -130,15 +140,39 @@
         let questions = {{ questions | tojson }};
         let currentIndex = 0;
         let bossHp = 100;
-        let playerHp = 100;
+        let playerHp = {{ user.normal_hp if mode == 'normal' else user.survival_hp }};
+        let maxHp = {{ user.normal_max_hp if mode == 'normal' else user.survival_max_hp }};
         let answered = false;
         let correctCount = 0;
         let wrongCount = 0;
-        let bossesKilled = 0;
+        let bossesKilled = {{ user.survival_bosses_killed if mode == 'survival' else 0 }};
+        let floor = {{ user.survival_current_floor if mode == 'survival' else 1 }};
 
         function updateUI() {
             document.getElementById('bossHpBar').style.width = Math.max(0, bossHp) + '%';
             document.getElementById('playerHpDisplay').textContent = playerHp;
+            if (mode === 'survival') {
+                document.getElementById('floorDisplay').textContent = floor;
+            }
+        }
+
+        function createFloorUpEffect() {
+            const arena = document.getElementById('arena');
+            const effect = document.createElement('div');
+            effect.className = 'floor-up-effect';
+            arena.appendChild(effect);
+            setTimeout(() => effect.remove(), 1000);
+            // Thêm sparkle vàng
+            for (let i = 0; i < 30; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'sparkle';
+                spark.style.top = Math.random() * 100 + '%';
+                spark.style.left = Math.random() * 100 + '%';
+                spark.style.background = '#b388ff';
+                spark.style.boxShadow = '0 0 30px #b388ff';
+                arena.appendChild(spark);
+                setTimeout(() => spark.remove(), 1500);
+            }
         }
 
         async function attack(answer, btn) {
@@ -173,13 +207,48 @@
                     createSparkles();
 
                     if (bossHp <= 0) {
-                        resultArea.innerHTML += `<div class="result-box success" style="margin-top:15px;">🏆 BOSS ĐÃ BỊ ĐÁNH BẠI!</div>`;
+                        // Boss chết
                         bossesKilled++;
-                        document.getElementById('nextBtn').style.display = 'inline-block';
-                        document.getElementById('nextBtn').textContent = '➡️ Level tiếp theo';
                         if (mode === 'survival') {
-                            // Survival: tự động chuyển boss mới
-                            setTimeout(() => nextQuestion(), 2000);
+                            // Survival: vượt tầng
+                            await fetch('/api/survival/floor', { method: 'POST' });
+                            floor++;
+                            document.getElementById('floorDisplay').textContent = floor;
+                            createFloorUpEffect();
+                            resultArea.innerHTML = `
+                                <div class="result-box floor-up">🏰 LÊN TẦNG ${floor}!</div>
+                                <div class="result-box success" style="margin-top:15px;">
+                                    Nhờ sự dũng cảm và kiến thức của bạn, đã giúp chúng ta lên tầng mới của tháp yêu ma!
+                                </div>
+                            `;
+                            // Tự động chuyển boss mới sau 2.5s
+                            setTimeout(() => {
+                                bossHp = 100;
+                                currentIndex = 0;
+                                // Lấy câu hỏi mới (level ngẫu nhiên)
+                                fetch('/api/survival/new_question')
+                                    .then(r => r.json())
+                                    .then(data => {
+                                        if (data.question) {
+                                            questions = [data.question];
+                                            renderQuestion();
+                                        }
+                                    })
+                                    .catch(() => {
+                                        // Fallback: reload trang
+                                        window.location.reload();
+                                    });
+                                updateUI();
+                                document.getElementById('nextBtn').style.display = 'none';
+                                document.getElementById('reviveBtn').style.display = 'none';
+                                resultArea.innerHTML = '';
+                            }, 2800);
+                            return;
+                        } else {
+                            // Normal: chuyển level
+                            resultArea.innerHTML += `<div class="result-box success" style="margin-top:15px;">🏆 BOSS ĐÃ BỊ ĐÁNH BẠI!</div>`;
+                            document.getElementById('nextBtn').style.display = 'inline-block';
+                            document.getElementById('nextBtn').textContent = '➡️ Level tiếp theo';
                         }
                     } else {
                         document.getElementById('nextBtn').style.display = 'inline-block';
@@ -193,23 +262,31 @@
                     wrongCount++;
 
                     if (playerHp <= 0 || wrongCount >= 4) {
-                        resultArea.innerHTML += `<div class="result-box fail" style="margin-top:15px;">💀 BẠN ĐÃ THUA!</div>`;
-                        document.getElementById('reviveBtn').style.display = 'inline-block';
-                        document.getElementById('nextBtn').style.display = 'none';
+                        // Người chơi thua
                         if (mode === 'survival') {
-                            // Survival: kết thúc, lưu tiến độ
+                            // Lưu high score
                             await fetch('/api/survival/end', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ bosses_killed: bossesKilled })
                             });
+                            resultArea.innerHTML = `
+                                <div class="result-box fail" style="margin-top:15px;">💀 BẠN ĐÃ THUA!</div>
+                                <div class="result-box success" style="margin-top:15px;">
+                                    🏆 Bạn đã vượt qua <strong>${floor}</strong> tầng!<br>
+                                    High Score: <strong>${floor}</strong>
+                                </div>
+                            `;
                         } else {
                             await fetch('/api/normal/end', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ bosses_killed: bossesKilled })
                             });
+                            resultArea.innerHTML += `<div class="result-box fail" style="margin-top:15px;">💀 BẠN ĐÃ THUA!</div>`;
                         }
+                        document.getElementById('reviveBtn').style.display = 'inline-block';
+                        document.getElementById('nextBtn').style.display = 'none';
                         return;
                     }
                     setTimeout(() => {
@@ -226,12 +303,27 @@
             }
         }
 
+        function renderQuestion() {
+            if (!questions || questions.length === 0) return;
+            const q = questions[0];
+            document.getElementById('questionText').textContent = q.q;
+            const container = document.getElementById('skillsContainer');
+            container.innerHTML = q.options.map((opt, idx) =>
+                `<button class="skill-btn attack" onclick="attack(${idx}, this)">
+                    <span class="icon">⚡</span>
+                    <span class="label">${opt}</span>
+                </button>`
+            ).join('');
+            document.getElementById('resultArea').innerHTML = '';
+            answered = false;
+        }
+
         function nextQuestion() {
             document.getElementById('nextBtn').style.display = 'none';
             document.getElementById('reviveBtn').style.display = 'none';
             currentIndex++;
             if (currentIndex >= questions.length) {
-                // Chuyển level mới hoặc kết thúc
+                // Hết câu hỏi, chuyển level tiếp theo (Normal mode)
                 if (mode === 'normal' && levelId < 10) {
                     window.location.href = `/game/${levelId + 1}`;
                 } else {
@@ -239,7 +331,6 @@
                 }
                 return;
             }
-            // Hiển thị câu hỏi tiếp theo
             const q = questions[currentIndex];
             document.getElementById('questionText').textContent = q.q;
             const container = document.getElementById('skillsContainer');
@@ -251,7 +342,7 @@
             ).join('');
             document.getElementById('resultArea').innerHTML = '';
             answered = false;
-            bossHp = Math.min(100, bossHp + 20); // Boss hồi phục một ít
+            bossHp = Math.min(100, bossHp + 10);
             updateUI();
         }
 
@@ -260,12 +351,29 @@
                 const res = await fetch('/api/revive', { method: 'POST' });
                 const data = await res.json();
                 if (data.success) {
-                    playerHp = 100;
+                    if (mode === 'survival') {
+                        // Survival: reset về tầng 1
+                        await fetch('/api/survival/reset', { method: 'POST' });
+                        floor = 1;
+                        bossesKilled = 0;
+                        document.getElementById('floorDisplay').textContent = floor;
+                        // Lấy câu hỏi mới
+                        fetch('/api/survival/new_question')
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.question) {
+                                    questions = [data.question];
+                                    renderQuestion();
+                                }
+                            })
+                            .catch(() => window.location.reload());
+                    }
+                    playerHp = maxHp;
                     wrongCount = 0;
+                    bossHp = 100;
                     document.getElementById('reviveBtn').style.display = 'none';
                     document.getElementById('resultArea').innerHTML = `<div class="result-box success">💚 ${data.message}</div>`;
                     updateUI();
-                    // Cho phép tiếp tục
                     document.querySelectorAll('.skill-btn:not([disabled])').forEach(b => b.disabled = false);
                     answered = false;
                 } else {
@@ -302,7 +410,9 @@
             }, 3000);
         }
 
+        // Khởi tạo
         updateUI();
+        console.log(`🎮 Mode: ${mode}, Floor: ${floor}`);
     </script>
 </body>
 </html>
