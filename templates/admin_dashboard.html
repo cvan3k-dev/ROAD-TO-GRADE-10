@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Road To Grade 10 RPG</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI', Tahoma, sans-serif; background:#0f0f1a; color:#e0e0e0; min-height:100vh; }
+        .container { display:flex; min-height:100vh; }
+        .sidebar {
+            width:250px; background:#1a1a2e; border-right:2px solid #e74c3c;
+            padding:20px; display:flex; flex-direction:column; gap:5px;
+        }
+        .sidebar h2 { color:#e74c3c; margin-bottom:20px; }
+        .sidebar a {
+            color:#aaa; text-decoration:none; padding:12px 16px;
+            border-radius:8px; transition:all 0.2s;
+        }
+        .sidebar a:hover { background:#e74c3c; color:white; }
+        .sidebar a.active { background:#e74c3c; color:white; }
+        .sidebar .logout { margin-top:auto; color:#e74c3c; }
+        .sidebar .logout:hover { background:#e74c3c; color:white; }
+        .main { flex:1; padding:30px; }
+        .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; }
+        .header h1 { color:#f7d44a; }
+        .stats-grid {
+            display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+            gap:20px; margin-bottom:30px;
+        }
+        .stat-card {
+            background:#1a1a2e; padding:20px; border-radius:12px;
+            border:1px solid #2a3f5a; text-align:center;
+        }
+        .stat-card .number { font-size:32px; font-weight:bold; color:#f7d44a; }
+        .stat-card .label { color:#888; margin-top:5px; }
+        .card-grid {
+            display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr));
+            gap:20px; margin-top:20px;
+        }
+        .card {
+            background:#1a1a2e; padding:25px; border-radius:12px;
+            border:1px solid #2a3f5a; text-align:center;
+            cursor:pointer; transition:all 0.2s;
+        }
+        .card:hover { border-color:#e74c3c; transform:translateY(-3px); }
+        .card .icon { font-size:48px; margin-bottom:10px; }
+        .card .title { font-weight:bold; color:#f7d44a; }
+        .card .desc { font-size:13px; color:#888; margin-top:5px; }
+        table { width:100%; border-collapse:collapse; margin-top:15px; }
+        th { text-align:left; padding:10px; border-bottom:2px solid #e74c3c; color:#f7d44a; }
+        td { padding:10px; border-bottom:1px solid #2a3f5a; }
+        @media (max-width:768px) { .container { flex-direction:column; } .sidebar { width:100%; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>⚔️ Admin</h2>
+            <a href="/admin-panel/dashboard" class="active">📊 Dashboard</a>
+            <a href="/admin-panel/users">👥 Người dùng</a>
+            <a href="/admin-panel/survival-questions">📝 Câu hỏi Sinh tồn</a>
+            <a href="/admin-panel/logout" class="logout">🚪 Đăng xuất</a>
+        </div>
+        <div class="main">
+            <div class="header">
+                <h1>📊 Dashboard</h1>
+                <span style="color:#888;">Xin chào, Admin!</span>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="number">{{ total_users }}</div>
+                    <div class="label">👥 Người dùng</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ total_xp }}</div>
+                    <div class="label">⭐ Tổng XP</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ avg_level }}</div>
+                    <div class="label">📈 Level TB</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ survival_questions }}</div>
+                    <div class="label">📝 Câu hỏi Sinh tồn</div>
+                </div>
+            </div>
+
+            <h3 style="color:#f7d44a; margin-bottom:15px;">🚀 Quản lý nhanh</h3>
+            <div class="card-grid">
+                <div class="card" onclick="location.href='/admin-panel/users'">
+                    <div class="icon">👥</div>
+                    <div class="title">Người dùng</div>
+                    <div class="desc">Xem danh sách và tiến độ</div>
+                </div>
+                <div class="card" onclick="location.href='/admin-panel/survival-questions'">
+                    <div class="icon">📝</div>
+                    <div class="title">Câu hỏi Sinh tồn</div>
+                    <div class="desc">Thêm/sửa/xóa câu hỏi</div>
+                </div>
+            </div>
+
+            <h3 style="color:#f7d44a; margin-top:30px;">👥 Người dùng gần đây</h3>
+            <table>
+                <thead><tr><th>Tên</th><th>Level</th><th>XP</th><th>Ngày tham gia</th></tr></thead>
+                <tbody>
+                    {% for u in recent_users %}
+                    <tr>
+                        <td>{{ u.username }}</td>
+                        <td>{{ u.level }}</td>
+                        <td>{{ u.xp }}</td>
+                        <td>{{ u.created_at.strftime('%d/%m/%Y') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
