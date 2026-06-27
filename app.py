@@ -625,7 +625,20 @@ def init_db():
     return "✅ Database created!"
 
 with app.app_context():
-    db.create_all()
+    if SurvivalQuestion.query.count() == 0:
+        sample_questions = [
+            {'question': 'Từ nào có nghĩa là "mèo"?', 'options': ['Dog', 'Cat', 'Bird', 'Fish'], 'correct_answer': 1, 'floor_level': 1},
+            {'question': 'Từ nào là màu sắc?', 'options': ['Red', 'Table', 'Run', 'Happy'], 'correct_answer': 0, 'floor_level': 1},
+        ]
+        for sq in sample_questions:
+            q = SurvivalQuestion(
+                question=sq['question'],
+                options=json.dumps(sq['options']),
+                correct_answer=sq['correct_answer'],
+                floor_level=sq['floor_level']
+            )
+            db.session.add(q)
+        db.session.commit()
     
 # ============================================================
 # RUN
