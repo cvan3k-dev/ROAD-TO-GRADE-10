@@ -39,17 +39,17 @@ class User(UserMixin, db.Model):
     achievements = db.Column(db.Text, default='[]')
     
     # ===== CHẾ ĐỘ NORMAL =====
-    normal_mode_best = db.Column(db.Integer, default=0)       # Level cao nhất đạt được
-    normal_checkpoint = db.Column(db.Integer, default=0)      # Checkpoint (level đã qua)
-    normal_hp = db.Column(db.Integer, default=100)            # HP hiện tại
-    normal_max_hp = db.Column(db.Integer, default=100)        # HP tối đa
+    normal_mode_best = db.Column(db.Integer, default=0)
+    normal_checkpoint = db.Column(db.Integer, default=0)
+    normal_hp = db.Column(db.Integer, default=100)
+    normal_max_hp = db.Column(db.Integer, default=100)
     
     # ===== CHẾ ĐỘ SURVIVAL (VƯỢT TẦNG) =====
-    survival_high_score = db.Column(db.Integer, default=0)    # Số tầng cao nhất đạt được
-    survival_current_floor = db.Column(db.Integer, default=1) # Tầng hiện tại
-    survival_hp = db.Column(db.Integer, default=100)          # HP hiện tại
-    survival_max_hp = db.Column(db.Integer, default=100)      # HP tối đa
-    survival_bosses_killed = db.Column(db.Integer, default=0) # Boss đã tiêu diệt trong run hiện tại
+    survival_high_score = db.Column(db.Integer, default=0)
+    survival_current_floor = db.Column(db.Integer, default=1)
+    survival_hp = db.Column(db.Integer, default=100)
+    survival_max_hp = db.Column(db.Integer, default=100)
+    survival_bosses_killed = db.Column(db.Integer, default=0)
 
 class Achievement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -78,6 +78,17 @@ class UserShopItem(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     item_id = db.Column(db.Integer, db.ForeignKey('shop_item.id'), nullable=False)
     purchased_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# ===== BẢNG CÂU HỎI SINH TỒN (THÊM MỚI) =====
+class SurvivalQuestion(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.Text, nullable=False)
+    options = db.Column(db.Text, nullable=False)  # Lưu JSON: ["A", "B", "C", "D"]
+    correct_answer = db.Column(db.Integer, nullable=False)  # 0,1,2,3
+    floor_level = db.Column(db.Integer, default=1)  # Tầng áp dụng
+    difficulty = db.Column(db.Integer, default=1)  # 1=Dễ, 2=TB, 3=Khó
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # ============================================================
 # FILTER TÙY CHỈNH
@@ -466,7 +477,6 @@ def attack():
 
 @app.route('/api/survival/floor', methods=['POST'])
 def survival_floor():
-    """Khi vượt qua một tầng (Survival Mode)"""
     if 'user_id' not in session:
         return jsonify({'error': 'Chưa đăng nhập!'}), 401
     user = User.query.get(session['user_id'])
@@ -489,14 +499,12 @@ def survival_floor():
 
 @app.route('/api/survival/reset', methods=['POST'])
 def survival_reset():
-    """Reset Survival Mode (khi chết)"""
     if 'user_id' not in session:
         return jsonify({'error': 'Chưa đăng nhập!'}), 401
     user = User.query.get(session['user_id'])
     if not user:
         return jsonify({'error': 'User không tồn tại!'}), 404
     
-    # Lưu high score nếu cao hơn
     if user.survival_bosses_killed > user.survival_high_score:
         user.survival_high_score = user.survival_bosses_killed
     user.survival_current_floor = 1
@@ -526,7 +534,7 @@ def normal_end():
     return jsonify({'success': True, 'message': f'Đã lưu tiến độ Normal! Boss tiêu diệt: {bosses_killed}'})
 
 # ============================================================
-# ADMIN
+# ADMIN (RIÊNG BIỆT, KHÔNG CÓ TRÊN TRANG CHỦ)
 # ============================================================
 
 ADMIN_USERNAME = "admin"
@@ -554,15 +562,136 @@ def admin_dashboard():
     total_users = len(users)
     total_xp = sum(u.xp for u in users)
     avg_level = round(sum(u.level for u in users) / total_users, 1) if total_users > 0 else 0
+    survival_high_scores = User.query.order_by(User.survival_high_score.desc()).limit(10).all()
     return render_template('admin_dashboard.html', 
-        users=users, total_users=total_users, total_xp=total_xp,
-        avg_level=avg_level, level_counts=level_counts
+        users=users, 
+        total_users=total_users, 
+        total_xp=total_xp,
+        avg_level=avg_level, 
+        level_counts=level_counts,
+        survival_high_scores=survival_high_scores
     )
+
+@app.route('/admin/users')
+def admin_users():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    users = User.query.all()
+    return render_template('admin_users.html', users=users)
+
+@app.route('/admin/survival-questions')
+def admin_survival_questions():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    questions = SurvivalQuestion.query.order_by(SurvivalQuestion.floor_level, SurvivalQuestion.difficulty).all()
+    return render_template('admin_survival_questions.html', questions=questions)
+
+@app.route('/api/admin/survival-questions', methods=['GET', 'POST'])
+def api_admin_survival_questions():
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    if request.method == 'GET':
+        questions = SurvivalQuestion.query.all()
+        return jsonify([{
+            'id': q.id,
+            'question': q.question,
+            'options': json.loads(q.options),
+            'correct_answer': q.correct_answer,
+            'floor_level': q.floor_level,
+            'difficulty': q.difficulty
+        } for q in questions])
+    
+    if request.method == 'POST':
+        data = request.json
+        try:
+            q = SurvivalQuestion(
+                question=data['question'],
+                options=json.dumps(data['options']),
+                correct_answer=data['correct_answer'],
+                floor_level=data.get('floor_level', 1),
+                difficulty=data.get('difficulty', 1)
+            )
+            db.session.add(q)
+            db.session.commit()
+            return jsonify({'message': 'Đã thêm câu hỏi!', 'id': q.id}), 201
+        except Exception as e:
+            return jsonify({'error': str(e)}), 400
+
+@app.route('/api/admin/survival-questions/<int:qid>', methods=['PUT', 'DELETE'])
+def api_admin_survival_question_detail(qid):
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    q = SurvivalQuestion.query.get(qid)
+    if not q:
+        return jsonify({'error': 'Không tìm thấy câu hỏi!'}), 404
+    
+    if request.method == 'PUT':
+        data = request.json
+        q.question = data.get('question', q.question)
+        q.options = json.dumps(data.get('options', json.loads(q.options)))
+        q.correct_answer = data.get('correct_answer', q.correct_answer)
+        q.floor_level = data.get('floor_level', q.floor_level)
+        q.difficulty = data.get('difficulty', q.difficulty)
+        db.session.commit()
+        return jsonify({'message': 'Đã cập nhật câu hỏi!'})
+    
+    if request.method == 'DELETE':
+        db.session.delete(q)
+        db.session.commit()
+        return jsonify({'message': 'Đã xóa câu hỏi!'})
+
+@app.route('/api/admin/users')
+def api_admin_users():
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    users = User.query.all()
+    return jsonify([{
+        'id': u.id,
+        'username': u.username,
+        'level': u.level,
+        'xp': u.xp,
+        'coins': u.coins,
+        'normal_mode_best': u.normal_mode_best,
+        'survival_high_score': u.survival_high_score,
+        'created_at': u.created_at.strftime('%d/%m/%Y %H:%M')
+    } for u in users])
 
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login'))
+
+# ============================================================
+# API SURVIVAL LẤY CÂU HỎI THEO TẦNG
+# ============================================================
+
+@app.route('/api/survival/new_question')
+def survival_new_question():
+    floor = request.args.get('floor', 1, type=int)
+    
+    # Ưu tiên lấy câu hỏi từ database theo tầng
+    questions = SurvivalQuestion.query.filter_by(floor_level=floor).all()
+    
+    if questions:
+        q = random.choice(questions)
+        return jsonify({
+            'id': q.id,
+            'question': q.question,
+            'options': json.loads(q.options),
+            'correct_answer': q.correct_answer
+        })
+    
+    # Fallback: lấy câu hỏi mặc định từ pool
+    level_id = random.randint(1, 10)
+    pool = get_questions(level_id)
+    q = random.choice(pool)
+    return jsonify({
+        'question': q['q'],
+        'options': q['options'],
+        'correct_answer': q['a']
+    })
 
 # ============================================================
 # RUN
