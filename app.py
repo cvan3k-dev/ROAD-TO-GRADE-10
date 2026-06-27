@@ -546,6 +546,7 @@ def admin_survival_questions():
 def api_admin_survival_questions():
     if not session.get('admin_logged_in'):
         return jsonify({'error': 'Unauthorized'}), 401
+    
     if request.method == 'GET':
         questions = SurvivalQuestion.query.all()
         return jsonify([{
@@ -556,39 +557,60 @@ def api_admin_survival_questions():
             'floor_level': q.floor_level,
             'difficulty': q.difficulty
         } for q in questions])
+    
     if request.method == 'POST':
-        data = request.json
-        q = SurvivalQuestion(
-            question=data['question'],
-            options=json.dumps(data['options']),
-            correct_answer=data['correct_answer'],
-            floor_level=data.get('floor_level', 1),
-            difficulty=data.get('difficulty', 1)
-        )
-        db.session.add(q)
-        db.session.commit()
-        return jsonify({'message': 'Đã thêm câu hỏi!', 'id': q.id}), 201
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Dữ liệu không hợp lệ'}), 400
+        
+        try:
+            q = SurvivalQuestion(
+                question=data['question'],
+                options=json.dumps(data['options']),
+                correct_answer=int(data['correct_answer']),
+                floor_level=int(data.get('floor_level', 1)),
+                difficulty=int(data.get('difficulty', 1))
+            )
+            db.session.add(q)
+            db.session.commit()
+            return jsonify({'message': 'Đã thêm câu hỏi!', 'id': q.id}), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 400
 
 @app.route('/api/admin/survival-questions/<int:qid>', methods=['PUT', 'DELETE'])
 def api_admin_survival_question_detail(qid):
     if not session.get('admin_logged_in'):
         return jsonify({'error': 'Unauthorized'}), 401
+    
     q = SurvivalQuestion.query.get(qid)
     if not q:
         return jsonify({'error': 'Không tìm thấy câu hỏi!'}), 404
+    
     if request.method == 'PUT':
-        data = request.json
-        q.question = data.get('question', q.question)
-        q.options = json.dumps(data.get('options', json.loads(q.options)))
-        q.correct_answer = data.get('correct_answer', q.correct_answer)
-        q.floor_level = data.get('floor_level', q.floor_level)
-        q.difficulty = data.get('difficulty', q.difficulty)
-        db.session.commit()
-        return jsonify({'message': 'Đã cập nhật câu hỏi!'})
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Dữ liệu không hợp lệ'}), 400
+        try:
+            q.question = data.get('question', q.question)
+            q.options = json.dumps(data.get('options', json.loads(q.options)))
+            q.correct_answer = int(data.get('correct_answer', q.correct_answer))
+            q.floor_level = int(data.get('floor_level', q.floor_level))
+            q.difficulty = int(data.get('difficulty', q.difficulty))
+            db.session.commit()
+            return jsonify({'message': 'Đã cập nhật câu hỏi!'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 400
+    
     if request.method == 'DELETE':
-        db.session.delete(q)
-        db.session.commit()
-        return jsonify({'message': 'Đã xóa câu hỏi!'})
+        try:
+            db.session.delete(q)
+            db.session.commit()
+            return jsonify({'message': 'Đã xóa câu hỏi!'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 400
 
 @app.route('/admin/logout')
 def admin_logout():
