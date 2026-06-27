@@ -39,6 +39,11 @@ class User(db.Model):
     current_hp = db.Column(db.Integer, default=100)
     max_hp = db.Column(db.Integer, default=100)
     checkpoint_level = db.Column(db.Integer, default=0)  # Checkpoint lưu level đã qua
+    normal_mode_best = db.Column(db.Integer, default=0)  # Level cao nhất đạt được ở chế độ Normal
+    survival_mode_best = db.Column(db.Integer, default=0)  # Số boss tiêu diệt ở chế độ Survival
+    current_hp = db.Column(db.Integer, default=100)
+    max_hp = db.Column(db.Integer, default=100)
+    checkpoint_level = db.Column(db.Integer, default=1)  # Checkpoint hiện tại
 
 class Achievement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
