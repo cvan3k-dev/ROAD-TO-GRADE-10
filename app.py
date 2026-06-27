@@ -562,6 +562,18 @@ def admin_logout():
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login'))
 
+# ===== TỰ ĐỘNG TẠO BẢNG MỚI KHI CÓ THAY ĐỔI =====
+with app.app_context():
+    # Xóa database cũ nếu có lỗi
+    try:
+        db.create_all()
+        print("✅ Database synced successfully")
+    except Exception as e:
+        print(f"❌ Database sync error: {e}")
+        # Nếu có lỗi, xóa và tạo lại
+        os.remove(DB_PATH) if os.path.exists(DB_PATH) else None
+        db.create_all()
+        print("✅ Database recreated")
 # ============================================================
 # RUN
 # ============================================================
